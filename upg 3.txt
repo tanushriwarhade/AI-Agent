@@ -1,0 +1,315 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Calendar, Mic, Activity, CheckCircle, Clock, ShieldAlert, 
+  BrainCircuit, Zap, MicOff, HeartPulse, Flame, Smile,
+  Frown, Lightbulb, AlertTriangle, HelpCircle, Wind, Plus
+} from 'lucide-react';
+
+// --- COMPONENT: NEURAL PARTICLE BACKGROUND ---
+const NeuralBackground = ({ mood }) => {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    let animationFrameId;
+    
+    // Resize handling
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Particle Config based on Mood
+    const getMoodConfig = () => {
+      switch(mood) {
+        case 'anxious': return { speed: 4, color: '167, 139, 250', connect: false }; // Fast Purple
+        case 'burnout': return { speed: 0.2, color: '239, 68, 68', connect: false, fall: true }; // Slow Red Snow
+        case 'focus':   return { speed: 0.5, color: '59, 130, 246', connect: true, grid: true }; // Organized Blue
+        case 'euphoria': return { speed: 3, color: '234, 179, 8', connect: true }; // Fast Gold
+        default:        return { speed: 1, color: '6, 182, 212', connect: true }; // Cyan
+      }
+    };
+
+    // Create Particles
+    const particles = Array.from({ length: 70 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 2,
+      vy: (Math.random() - 0.5) * 2,
+      size: Math.random() * 2 + 1
+    }));
+
+    // Animation Loop
+    const render = () => {
+      const config = getMoodConfig();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = `rgba(${config.color}, 0.5)`;
+      ctx.strokeStyle = `rgba(${config.color}, 0.15)`;
+
+      particles.forEach((p, i) => {
+        // Movement Logic
+        if (config.grid) {
+          // Organized movement for Focus
+          p.x += Math.sin(Date.now() / 1000 + i) * 0.2;
+        } else if (config.fall) {
+          // Falling for Burnout
+          p.y += config.speed;
+          if (p.y > canvas.height) p.y = 0;
+        } else {
+          // Chaos for others
+          p.x += p.vx * config.speed;
+          p.y += p.vy * config.speed;
+        }
+
+        // Wrap around screen
+        if (p.x < 0) p.x = canvas.width;
+        if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0 && !config.fall) p.y = canvas.height;
+        if (p.y > canvas.height && !config.fall) p.y = 0;
+
+        // Draw Dot
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw Connections (Neural Lines)
+        if (config.connect) {
+          particles.forEach((p2, j) => {
+            if (i === j) return;
+            const dx = p.x - p2.x;
+            const dy = p.y - p2.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 100) {
+              ctx.beginPath();
+              ctx.moveTo(p.x, p.y);
+              ctx.lineTo(p2.x, p2.y);
+              ctx.stroke();
+            }
+          });
+        }
+      });
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    render();
+    return () => {
+      window.removeEventListener('resize', resize);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [mood]);
+
+  return <canvas ref={canvasRef} className="absolute inset-0 z-0 opacity-40 pointer-events-none" />;
+};
+
+// --- MAIN APP COMPONENT ---
+const App = () => {
+  const [mood, setMood] = useState('neutral');
+  const [energyLevel, setEnergyLevel] = useState(70);
+  const [isListening, setIsListening] = useState(false);
+  const [isBreathingMode, setIsBreathingMode] = useState(false);
+  const [agentThought, setAgentThought] = useState("Neural Core Online. Awaiting input...");
+  const [showGatekeeperModal, setShowGatekeeperModal] = useState(false);
+  const [lastInput, setLastInput] = useState("");
+  const [tasks, setTasks] = useState([
+    { id: 1, text: "Review Q3 Analytics", status: "pending" },
+    { id: 2, text: "Optimize Database", status: "pending" }
+  ]);
+
+  // --- EMOTION CONFIG ---
+  const emotionalMatrix = {
+    neutral: { label: 'Balanced', color: 'text-cyan-400', bg: 'bg-cyan-500', border: 'border-cyan-500/30', orbSpeed: '8s', voice: {p:1, r:1}, icon: <Zap /> },
+    focus: { label: 'Deep Flow', color: 'text-blue-400', bg: 'bg-blue-600', border: 'border-blue-500/30', orbSpeed: '3s', voice: {p:0.9, r:1.1}, icon: <BrainCircuit /> },
+    euphoria: { label: 'Euphoria', color: 'text-yellow-400', bg: 'bg-yellow-500', border: 'border-yellow-500/30', orbSpeed: '1s', voice: {p:1.2, r:1.25}, icon: <Smile /> },
+    creative: { label: 'Spark', color: 'text-pink-400', bg: 'bg-pink-500', border: 'border-pink-500/30', orbSpeed: '2s', voice: {p:1.1, r:1.1}, icon: <Lightbulb /> },
+    anxious: { label: 'Anxiety', color: 'text-violet-400', bg: 'bg-violet-500', border: 'border-violet-500/30', orbSpeed: '0.4s', voice: {p:1.3, r:1.4}, icon: <HeartPulse /> },
+    frustrated: { label: 'Frustration', color: 'text-orange-500', bg: 'bg-orange-600', border: 'border-orange-500/30', orbSpeed: '0.2s', voice: {p:0.7, r:1.3}, icon: <AlertTriangle /> },
+    sadness: { label: 'Melancholy', color: 'text-indigo-300', bg: 'bg-indigo-900', border: 'border-indigo-500/30', orbSpeed: '15s', voice: {p:0.6, r:0.8}, icon: <Frown /> },
+    burnout: { label: 'Critical Fail', color: 'text-red-500', bg: 'bg-red-600', border: 'border-red-500/30', orbSpeed: '20s', voice: {p:0.5, r:0.7}, icon: <Flame /> },
+    confused: { label: 'Processing', color: 'text-slate-400', bg: 'bg-slate-500', border: 'border-slate-500/30', orbSpeed: '4s', voice: {p:1, r:0.9}, icon: <HelpCircle /> }
+  };
+  const currentTheme = emotionalMatrix[mood];
+
+  // --- AUDIO ENGINE ---
+  const speak = (text) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      const v = window.speechSynthesis.getVoices().find(v => v.name.includes('Google US English')) || window.speechSynthesis.getVoices()[0];
+      u.voice = v; u.pitch = currentTheme.voice.p; u.rate = currentTheme.voice.r;
+      window.speechSynthesis.speak(u);
+    }
+  };
+
+  // --- NLU ENGINE ---
+  const handleVoiceInteraction = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { runSimulation(); return; }
+    const r = new SR();
+    r.lang = 'en-US';
+    setIsListening(true);
+    setAgentThought("Analyzing vocal harmonics & semantics...");
+    r.start();
+    r.onresult = (e) => {
+      const t = e.results[0][0].transcript.toLowerCase();
+      setLastInput(t);
+      decipherEmotion(t);
+      setIsListening(false);
+    };
+    r.onerror = () => { setIsListening(false); runSimulation(); };
+  };
+
+  const decipherEmotion = (t) => {
+    const match = (words) => words.some(w => t.includes(w));
+    
+    // Proactive Task Creation
+    if (match(['idea', 'remind', 'add', 'task'])) {
+      const newTask = { id: Date.now(), text: "Drafting: " + t, status: "new" };
+      setTasks(prev => [...prev, newTask]);
+      updateState('creative', 80, "I've added that to your task list automatically. Good idea.");
+      return;
+    }
+
+    if (match(['exhausted', 'burnout', 'dead', 'collapse'])) updateState('burnout', 5, "Critical energy failure. Initiating lockdown.");
+    else if (match(['panic', 'scared', 'worry'])) updateState('anxious', 30, "Heart rate elevated. Breathe with me.");
+    else if (match(['hate', 'angry', 'stupid'])) updateState('frustrated', 60, "Frustration detected. Let's solve this.");
+    else if (match(['sad', 'lonely', 'depressed'])) updateState('sadness', 20, "I'm clearing your schedule. Take space.");
+    else if (match(['amazing', 'won', 'happy'])) updateState('euphoria', 100, "Incredible! I'm syncing with your joy!");
+    else if (match(['focus', 'work', 'code', 'build'])) updateState('focus', 90, "Deep Work protocols engaged.");
+    else updateState('confused', 50, "I'm listening. Tell me more.");
+  };
+
+  const updateState = (m, e, r) => {
+    setMood(m); setEnergyLevel(e);
+    setAgentThought(`Analyzed: "${lastInput}"\nState: [${m.toUpperCase()}]\nBackground: Adapting Physics...`);
+    setTimeout(() => speak(r), 100);
+  };
+
+  const runSimulation = () => {
+    setIsListening(true); setAgentThought("Simulation: Cycling Neural States...");
+    setTimeout(() => {
+      setIsListening(false);
+      if (mood === 'neutral') updateState('anxious', 30, "I detect panic. Initiating Zen Mode.");
+      else if (mood === 'anxious') updateState('focus', 90, "Focus restored. Particle grid aligned.");
+      else updateState('euphoria', 100, "System Optimization Complete!");
+    }, 2000);
+  };
+
+  const toggleBreathing = () => {
+    if (isBreathingMode) { setIsBreathingMode(false); speak("Session complete."); } 
+    else { setIsBreathingMode(true); speak("Focus on the light. Inhale."); }
+  };
+
+  return (
+    <div className={`min-h-screen bg-slate-950 text-white font-sans flex overflow-hidden relative transition-colors duration-1000`}>
+      
+      {/* NEURAL BACKGROUND LAYER */}
+      <NeuralBackground mood={mood} />
+
+      {/* SIDEBAR */}
+      <aside className="w-1/5 border-r border-white/10 bg-black/40 backdrop-blur-xl flex flex-col p-6 gap-8 relative z-10">
+        <h1 className="font-bold text-xl tracking-tight flex items-center gap-2">
+          <div className={`w-3 h-3 rounded-full ${currentTheme.bg}`}></div> FlowState 3.0
+        </h1>
+        <div className="flex flex-col items-center justify-center flex-1">
+          <div className="relative w-48 h-48 flex items-center justify-center">
+            <div className={`absolute w-full h-full rounded-full opacity-30 blur-3xl transition-all duration-1000 ${currentTheme.bg}`}></div>
+             <div className={`relative w-32 h-32 ${currentTheme.bg} transition-all duration-1000 flex items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.6)]`}
+              style={{ animation: `morph ${currentTheme.orbSpeed} infinite ease-in-out`, borderRadius: mood === 'frustrated' ? '10% 90% 10% 90%' : '60% 40% 30% 70% / 60% 30% 70% 40%' }}>
+              <div className="text-white scale-150 animate-pulse">{currentTheme.icon}</div>
+            </div>
+            <svg className="absolute w-48 h-48 -rotate-90">
+              <circle cx="96" cy="96" r="88" stroke="currentColor" strokeWidth="2" className="text-white/10" fill="none" />
+              <circle cx="96" cy="96" r="88" stroke="currentColor" strokeWidth="4" className={`${currentTheme.color} transition-all duration-1000`} strokeDasharray="552" strokeDashoffset={552 - (552 * energyLevel) / 100} strokeLinecap="round" fill="none" />
+            </svg>
+          </div>
+          <h2 className={`text-2xl font-bold mt-6 ${currentTheme.color}`}>{currentTheme.label}</h2>
+          <p className="text-xs text-slate-500 uppercase tracking-widest">Neural Status</p>
+        </div>
+        <button onClick={handleVoiceInteraction} className={`w-full py-4 rounded-xl flex items-center justify-center gap-3 font-semibold transition-all shadow-lg bg-white/10 hover:bg-white/20 border border-white/5`}>
+          {isListening ? <MicOff className="animate-pulse text-red-400"/> : <Mic />} {isListening ? 'Analyzing...' : 'Neural Link'}
+        </button>
+        {['anxious', 'frustrated', 'burnout'].includes(mood) && (
+        <button onClick={toggleBreathing} className="w-full py-3 rounded-xl flex items-center justify-center gap-2 font-semibold bg-indigo-600 hover:bg-indigo-500 transition-all shadow-lg animate-bounce">
+            <Wind size={18} /> Emergency Zen
+        </button>
+        )}
+      </aside>
+
+      {/* CENTER PANEL */}
+      <main className="flex-1 p-8 flex flex-col gap-6 z-10">
+        <header className="flex justify-between items-end pb-6 border-b border-white/10">
+          <div><h2 className="text-3xl font-bold">Command Deck</h2><p className="text-slate-400">System Vibe: {mood.toUpperCase()}</p></div>
+          <div className={`px-4 py-2 rounded-full border ${currentTheme.border} ${currentTheme.color} bg-black/40 text-sm font-medium flex items-center gap-2`}>
+            {currentTheme.icon} Mode: {currentTheme.label}
+          </div>
+        </header>
+
+        {/* PROACTIVE TASK GENERATOR */}
+        <div className="grid grid-cols-1 gap-4">
+          {tasks.map((task) => (
+             <div key={task.id} className={`p-4 rounded-xl bg-black/40 border ${task.status === 'new' ? currentTheme.border : 'border-white/5'} flex items-center gap-4 animate-in fade-in slide-in-from-bottom-2`}>
+               <div className={`w-2 h-12 rounded-full ${task.status === 'new' ? currentTheme.bg : 'bg-slate-700'}`}></div>
+               <div className="flex-1">
+                 <h4 className="font-semibold text-lg">{task.text}</h4>
+                 <p className="text-xs text-slate-500 uppercase">{task.status === 'new' ? '✨ Auto-Generated by Agent' : 'Pending'}</p>
+               </div>
+               {task.status === 'new' && <div className={`${currentTheme.color} font-bold text-xs px-3 py-1 bg-white/5 rounded-full`}>NEW</div>}
+             </div>
+          ))}
+        </div>
+
+        {/* CALENDAR BLOCKER */}
+        <div className={`flex-1 grid grid-cols-1 gap-4 transition-all duration-1000 mt-4 ${['burnout', 'sadness', 'frustrated'].includes(mood) ? 'grayscale opacity-30 blur-[2px]' : ''}`}>
+          {['02:00 PM', '04:00 PM'].map((time, i) => (
+            <div key={i} onClick={() => ['burnout', 'sadness', 'frustrated'].includes(mood) && setShowGatekeeperModal(true)} className="p-5 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 cursor-pointer flex gap-6 items-center">
+              <span className="text-sm text-slate-500 font-mono w-20">{time}</span>
+              <div className="text-slate-400 italic">Available Slot</div>
+            </div>
+          ))}
+        </div>
+
+        {showGatekeeperModal && (
+          <div className="absolute inset-0 bg-black/90 z-50 flex items-center justify-center p-8 animate-in zoom-in duration-300">
+            <div className={`bg-slate-900 border ${currentTheme.border} p-8 rounded-2xl max-w-md text-center shadow-[0_0_100px_rgba(0,0,0,1)]`}>
+              <ShieldAlert className={`w-20 h-20 ${currentTheme.color} mx-auto mb-6 animate-bounce`} />
+              <h3 className="text-3xl font-bold text-white mb-4">Neural Lock Engaged</h3>
+              <p className="text-slate-400 mb-6">Bio-metrics indicate <strong className={currentTheme.color}>{currentTheme.label}</strong>. Cognitive tasks disabled.</p>
+              <button onClick={() => setShowGatekeeperModal(false)} className={`w-full py-3 ${currentTheme.bg} rounded-xl font-bold text-white`}>Acknowledge</button>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* RIGHT PANEL */}
+      <aside className="w-[28%] bg-black/40 backdrop-blur-xl border-l border-white/10 p-6 flex flex-col gap-6 z-10">
+        <div className="bg-slate-900/80 p-5 rounded-xl border border-white/10 min-h-[200px] shadow-inner relative overflow-hidden">
+          <div className="flex items-center gap-2 mb-4 text-xs font-bold tracking-wider text-slate-500 uppercase">
+            <BrainCircuit size={14} className={currentTheme.color} /> Processing Stream
+          </div>
+          <p className={`font-mono text-sm leading-relaxed ${currentTheme.color} typing-effect whitespace-pre-wrap`}>{">"} {agentThought}</p>
+        </div>
+      </aside>
+
+      {/* ZEN MODE */}
+      {isBreathingMode && (
+        <div className="absolute inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center animate-in fade-in duration-700">
+           <div className={`w-96 h-96 rounded-full ${currentTheme.bg} opacity-20 blur-[100px] animate-pulse absolute`}></div>
+            <div className={`w-64 h-64 ${currentTheme.bg} rounded-full flex items-center justify-center shadow-[0_0_100px_rgba(0,0,0,0.8)] relative`} style={{ animation: 'breathe 8s infinite ease-in-out' }}>
+              <Wind size={64} className="text-white opacity-80" />
+            </div>
+          <h2 className="text-4xl font-bold text-white mt-12 tracking-widest uppercase opacity-80">Inhale ... Exhale</h2>
+          <button onClick={toggleBreathing} className="mt-16 px-8 py-3 border border-white/20 rounded-full text-sm hover:bg-white/10 transition-colors">End Session</button>
+        </div>
+      )}
+      <style>{`
+        @keyframes morph { 0% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; } 50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; } 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; } }
+        @keyframes breathe { 0%, 100% { transform: scale(0.8); opacity: 0.8; } 50% { transform: scale(1.1); opacity: 1; } }
+      `}</style>
+    </div>
+  );
+};
+
+export default App;

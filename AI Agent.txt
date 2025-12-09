@@ -1,0 +1,10 @@
+ai agent
+
+
+
+Create a modern, single-page React web application called "FlowState". Use a sleek "Dark Mode" aesthetic with deep charcoal backgrounds and neon accent colors (cyan and purple).
+The layout should be a split-screen:
+Left Sidebar (20% width): For user profile and a big circular "Energy Battery" indicator.
+Center Panel (50% width): A weekly Calendar view with time slots.
+Right Panel (30% width): A "Knowledge & Task Hub" where I can see a list of to-do items.
+Use a glassmorphism effect (semi-transparent blur) for the panels. Ensure the app looks responsive and high-tech.
